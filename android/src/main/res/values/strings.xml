@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="permission_required">Please grant the permission to use the microphone</string>
+    <string name="enable_auto_start">Enable Auto Start</string>
+    <string name="ask_permission">Please allow Speech to always run in the background.</string>
+    <string name="allow">ALLOW</string>
+</resources>
