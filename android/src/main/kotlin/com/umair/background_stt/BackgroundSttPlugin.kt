@@ -36,6 +36,7 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
         private var event_channel: EventChannel? = null
         var eventSink: EventChannel.EventSink? = null
         private var currentActivity: Activity? = null
+        private var isStarted = false
 
         @JvmStatic
         var binaryMessenger: BinaryMessenger? = null
@@ -78,25 +79,16 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
             channel?.setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startService" -> {
-                        context?.let {
-                            Speech.init(it, it.packageName, 10000L, 1500L)
-                            Logger.setLogLevel(Logger.LogLevel.DEBUG)
-                            if (!isMyServiceRunning(SpeechListenService::class.java, context)) {
-                                try {
-                                    context.startService(Intent(context, SpeechListenService::class.java))
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                                result.success("Started Speech listener service.")
-                            } else {
-                                result.success("Speech listener service already running.")
-                            }
+                        context.let {
+                            initSpeechService(it)
+                            isStarted = true
+                            result.success("Started Speech listener service.")
                         }
                     }
                     "stopService" -> {
                         eventSink?.endOfStream()
                         eventSink = null
-
+                        isStarted = false
                         context?.let {
                             try {
                                 context.stopService(Intent(context, SpeechListenService::class.java))
@@ -113,7 +105,7 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
             event_channel = EventChannel(messenger, "background_stt_stream")
             event_channel?.setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    //callBack?.setEventSink(events)
+                    eventSink = events
                 }
 
                 override fun onCancel(arguments: Any?) {
@@ -168,6 +160,17 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
             }
             return false
         }
+
+        @JvmStatic
+        private fun initSpeechService(context: Context) {
+            Speech.init(context, context.packageName, 2000L, 1000L)
+            Logger.setLogLevel(Logger.LogLevel.DEBUG)
+            try {
+                context.startService(Intent(context, SpeechListenService::class.java))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
@@ -182,6 +185,15 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
         currentActivity = activityPluginBinding.activity
         activityPluginBinding.addRequestPermissionsResultListener(this)
         requestRecordPermission()
+
+        //Only Auto-Run if service is started and not stopped explicitly
+        if (isStarted) {
+            if (!areRecordPermissionsGranted()) {
+                currentActivity?.let {
+                    initSpeechService(it)
+                }
+            }
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -197,6 +209,7 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
     override fun onDetachedFromActivity() {
         Log.i(TAG, "onDetachedFromActivity")
         currentActivity = null
+        Speech.getInstance().shutdown()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>?, grantResults: IntArray?): Boolean {

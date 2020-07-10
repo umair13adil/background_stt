@@ -94,9 +94,7 @@ public class Speech {
             mDelayedStopListening.start(new DelayedOperation.Operation() {
                 @Override
                 public void onDelayedOperation() {
-                    returnPartialResultsAndRecreateSpeechRecognizer();
-                    Log.d("ReachedStop", "Stoppong");
-                    //  mListenerDelay.onClick("1");
+                    //returnPartialResultsAndRecreateSpeechRecognizer();
                 }
 
                 @Override
@@ -179,7 +177,7 @@ public class Speech {
 
         @Override
         public void onError(final int code) {
-            Logger.error(LOG_TAG, "Speech recognition error", new SpeechRecognitionException(code));
+            //Logger.error(LOG_TAG, "Speech recognition error", new SpeechRecognitionException(code));
             returnPartialResultsAndRecreateSpeechRecognizer();
         }
 
@@ -257,25 +255,11 @@ public class Speech {
             mDelayedStopListening.cancel();
             mDelayedStopListening = null;
         }
-//        Toast.makeText(context, "destroyed", Toast.LENGTH_SHORT).show();
+
         if (mListenerDelay != null) {
             mListenerDelay.onSpecifiedCommandPronounced("1");
         }
         mDelayedStopListening = new DelayedOperation(context, "delayStopListening", mStopListeningDelayInMs);
-    }
-
-    /**
-     * Initializes speech recognition.
-     *
-     * @param context application context
-     * @return speech instance
-     */
-    public static Speech init(final Context context) {
-        if (instance == null) {
-            instance = new Speech(context);
-        }
-
-        return instance;
     }
 
     /**
@@ -306,26 +290,29 @@ public class Speech {
      * Must be called inside Activity's onDestroy.
      */
     public synchronized void shutdown() {
-        if (mSpeechRecognizer != null) {
-            try {
-                mSpeechRecognizer.stopListening();
-            } catch (final Exception exc) {
-                Logger.error(getClass().getSimpleName(), "Warning while de-initing speech recognizer", exc);
+        if (instance != null) {
+            Log.i(LOG_TAG, "Shutting down speech-to-text.");
+            if (mSpeechRecognizer != null) {
+                try {
+                    mSpeechRecognizer.stopListening();
+                } catch (final Exception exc) {
+                    Logger.error(getClass().getSimpleName(), "Warning while de-initing speech recognizer", exc);
+                }
             }
-        }
 
-        if (mTextToSpeech != null) {
-            try {
-                mTtsCallbacks.clear();
-                mTextToSpeech.stop();
-                mTextToSpeech.shutdown();
-            } catch (final Exception exc) {
-                Logger.error(getClass().getSimpleName(), "Warning while de-initing text to speech", exc);
+            if (mTextToSpeech != null) {
+                try {
+                    mTtsCallbacks.clear();
+                    mTextToSpeech.stop();
+                    mTextToSpeech.shutdown();
+                } catch (final Exception exc) {
+                    Logger.error(getClass().getSimpleName(), "Warning while de-initing text to speech", exc);
+                }
             }
-        }
 
-        unregisterDelegate();
-        instance = null;
+            unregisterDelegate();
+            instance = null;
+        }
     }
 
     /**
@@ -334,11 +321,16 @@ public class Speech {
      * @return SpeechRecognition instance
      */
     public static Speech getInstance() {
+
         if (instance == null) {
             throw new IllegalStateException("Speech recognition has not been initialized! call init method first!");
         }
 
         return instance;
+    }
+
+    public static boolean isActive() {
+        return instance != null;
     }
 
     /**
@@ -371,15 +363,11 @@ public class Speech {
         if (delegate == null)
             throw new IllegalArgumentException("delegate must be defined!");
 
-        if (throttleAction()) {
+        /*if (throttleAction()) {
             Logger.debug(getClass().getSimpleName(), "Hey man calm down! Throttling start to prevent disaster!");
             return;
-        }
-//
-//        if (progressView != null && !(progressView.getParent() instanceof LinearLayout))
-//            throw new IllegalArgumentException("progressView must be put inside a LinearLayout!");
-//
-//        mProgressView = progressView;
+        }*/
+
         mDelegate = delegate;
 
         final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
@@ -467,9 +455,6 @@ public class Speech {
             Logger.error(Speech.class.getSimpleName(),
                     "Unhandled exception in delegate onSpeechResult", exc);
         }
-
-//        if (mProgressView != null)
-//            mProgressView.onResultOrOnError();
 
         // recreate the speech recognizer
         initSpeechRecognizer(mContext);

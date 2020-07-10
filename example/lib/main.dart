@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:background_stt/background_stt.dart';
 
 void main() {
@@ -15,7 +12,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var _service = BackgroundStt();
-  var result = "";
+  var result = "Say something!";
 
   @override
   void initState() {

@@ -18,7 +18,7 @@ class BackgroundStt {
       StreamController<SpeechResult>();
 
   StreamSubscription<SpeechResult> speechSubscription =
-      _speechListenerController.stream.listen(
+      _speechListenerController.stream.asBroadcastStream().listen(
           (data) {
             print("DataReceived: " + data.result);
           },

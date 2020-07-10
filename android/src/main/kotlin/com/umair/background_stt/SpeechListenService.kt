@@ -37,22 +37,24 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        delegate = this
-        Speech.getInstance().setListener(this)
-        if (Speech.getInstance().isListening) {
-            Speech.getInstance().stopListening()
-            muteSounds()
-        } else {
-            System.setProperty("rx.unsafe-disable", "True")
-            try {
-                Speech.getInstance().stopTextToSpeech()
-                startListening()
-            } catch (exc: SpeechRecognitionNotAvailable) {
-                Log.e(TAG, "${exc.message}")
-            } catch (exc: GoogleVoiceTypingDisabledException) {
-                Log.e(TAG, "${exc.message}")
+        if (Speech.isActive()) {
+            delegate = this
+            Speech.getInstance().setListener(this)
+            if (Speech.getInstance().isListening) {
+                Speech.getInstance().stopListening()
+                muteSounds()
+            } else {
+                System.setProperty("rx.unsafe-disable", "True")
+                try {
+                    Speech.getInstance().stopTextToSpeech()
+                    startListening()
+                } catch (exc: SpeechRecognitionNotAvailable) {
+                    Log.e(TAG, "${exc.message}")
+                } catch (exc: GoogleVoiceTypingDisabledException) {
+                    Log.e(TAG, "${exc.message}")
+                }
+                muteSounds()
             }
-            muteSounds()
         }
         return START_STICKY
     }
@@ -61,40 +63,59 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
         return null
     }
 
-    override fun onStartOfSpeech() {}
-    override fun onSpeechRmsChanged(value: Float) {}
+    override fun onStartOfSpeech() {
+        //Log.i(TAG, "$TAG onStartOfSpeech")
+    }
+
+    override fun onSpeechRmsChanged(value: Float) {
+        //Log.i(TAG, "$TAG onSpeechRmsChanged: $value")
+    }
+
     override fun onSpeechPartialResults(results: List<String>) {
-        for (partial in results) {
-            if (partial.isNotEmpty())
-                Log.i(TAG, "$TAG $partial")
-            if (partial.isNotEmpty()) {
-                //resetSounds()
-                BackgroundSttPlugin.eventSink?.success(SpeechResult(partial, true).toString())
+        if (results.isNotEmpty() && results.size > 1) {
+            for (partial in results) {
+                if (partial.isNotEmpty()) {
+                    if (partial.isNotEmpty()) {
+                        Log.i(TAG, "$TAG onSpeechPartialResults: $partial")
+                        BackgroundSttPlugin.eventSink?.success(SpeechResult(partial, true).toString())
+                    }
+                }
+            }
+        } else {
+            if (results.first().isNotEmpty()) {
+                Log.i(TAG, "$TAG onSpeechPartialResults: ${results.first()}")
+                BackgroundSttPlugin.eventSink?.success(SpeechResult(results.first(), false).toString())
             }
         }
+
     }
 
     override fun onSpeechResult(result: String) {
         if (result.isNotEmpty()) {
-            resetSounds()
+            Log.i(TAG, "$TAG onSpeechResult: $result")
             BackgroundSttPlugin.eventSink?.success(SpeechResult(result, false).toString())
         }
     }
 
     override fun onSpecifiedCommandPronounced(event: String) {
-        if (Speech.getInstance().isListening) {
-            muteSounds()
-            Speech.getInstance().stopListening()
-        } else {
-            try {
-                Speech.getInstance().stopTextToSpeech()
-                startListening()
-            } catch (exc: SpeechRecognitionNotAvailable) {
-                Log.e(TAG, "${exc.message}")
-            } catch (exc: GoogleVoiceTypingDisabledException) {
-                Log.e(TAG, "${exc.message}")
+
+        if (Speech.isActive()) {
+            if (Speech.getInstance().isListening) {
+                Log.i(TAG, "$TAG onSpecifiedCommandPronounced: Still Listening..")
+                //muteSounds()
+                //Speech.getInstance().stopListening()
+            } else {
+                try {
+                    //Log.i(TAG, "$TAG onSpecifiedCommandPronounced: Restart Listening..")
+                    //Speech.getInstance().stopTextToSpeech()
+                    startListening()
+                } catch (exc: SpeechRecognitionNotAvailable) {
+                    Log.e(TAG, "${exc.message}")
+                } catch (exc: GoogleVoiceTypingDisabledException) {
+                    Log.e(TAG, "${exc.message}")
+                }
+                muteSounds()
             }
-            muteSounds()
         }
     }
 
@@ -131,7 +152,8 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
         }.start()
     }
 
-    override fun onTaskRemoved(rootIntent: Intent) { //Restarting the service if it is removed.
+    override fun onTaskRemoved(rootIntent: Intent) {
+        Log.i(TAG, "$TAG onTaskRemoved")
         val service = PendingIntent.getService(applicationContext, Random().nextInt(),
                 Intent(applicationContext, SpeechListenService::class.java), PendingIntent.FLAG_ONE_SHOT)
         val alarmManager = (getSystemService(Context.ALARM_SERVICE) as AlarmManager)
@@ -144,9 +166,9 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
     }
 
     private fun startListening() {
-//        (getSystemService(Context.AUDIO_SERVICE) as AudioManager).let { audioManager ->
-//            if (!audioManager.isMusicActive && !audioManager.isSpeakerphoneOn && audioManager.isMicrophoneMute)
-        Speech.getInstance().startListening(null, this)
-//        }
+        if (Speech.isActive()) {
+            //Log.i(TAG, "$TAG startListening: Start Listening..")
+            Speech.getInstance().startListening(null, this)
+        }
     }
 }
