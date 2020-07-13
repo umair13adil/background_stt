@@ -1,7 +1,9 @@
 package com.umair.background_stt
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import com.afollestad.materialdialogs.DialogAction
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.Theme
@@ -70,4 +72,14 @@ fun getInputStreamValueById(key: String, call: MethodCall): InputStream? {
         return ByteArrayInputStream(it)
     }
     return null
+}
+
+fun Context.adjustSound(adjust: Int) {
+    (getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager).let { audioManager ->
+        audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION, adjust, 0)
+        audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_ALARM, adjust, 0)
+        audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, adjust, 0)
+        audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_RING, adjust, 0)
+        audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_SYSTEM, adjust, 0)
+    }
 }

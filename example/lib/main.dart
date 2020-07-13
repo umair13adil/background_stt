@@ -20,11 +20,23 @@ class _MyAppState extends State<MyApp> {
     _service.getSpeechResults().onData((data) {
       print("getSpeechResults: ${data.result} , ${data.isPartial}");
 
+      _doOnSpeechCommandMatch(data.result);
+
       setState(() {
         result = data.result;
       });
     });
     super.initState();
+  }
+
+  void _doOnSpeechCommandMatch(String command) {
+    if (command == "start") {
+      _service.confirmIntent("Do you want to start?");
+    } else if (command == "stop") {
+      _service.confirmIntent("Do you want to stop?");
+    } else if (command == "hello") {
+      _service.confirmIntent("Did you say hello?");
+    }
   }
 
   @override

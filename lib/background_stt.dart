@@ -9,6 +9,8 @@ class BackgroundStt {
   static const _channel = const MethodChannel('background_stt');
   static const _eventChannel = EventChannel('background_stt_stream');
 
+  static var _lastResult = "";
+
   static SpeechResult _speechResultSaved = SpeechResult();
 
   static Stream<SpeechResult> get speechResult =>
@@ -33,6 +35,13 @@ class BackgroundStt {
     return result;
   }
 
+  Future<String> confirmIntent(String confirmationText) async {
+    final String result = await _channel.invokeMethod('confirmIntent',
+        <String, dynamic>{'confirmationText': confirmationText});
+    print('[$_tag] confirmIntent: $result');
+    return result;
+  }
+
   Future<String> get stopSpeechListenService async {
     _stopSpeechListener();
     final String result = await _channel.invokeMethod('stopService');
@@ -44,7 +53,10 @@ class BackgroundStt {
     _eventChannel.receiveBroadcastStream().listen((dynamic event) {
       Map result = jsonDecode(event);
       _speechResultSaved = SpeechResult.fromJson(result);
-      _speechListenerController.add(_speechResultSaved);
+      if (_lastResult.isEmpty || _lastResult != _speechResultSaved.result) {
+        _speechListenerController.add(_speechResultSaved);
+        _lastResult = _speechResultSaved.result;
+      }
     }, onError: (dynamic error) {});
 
     return speechSubscription;

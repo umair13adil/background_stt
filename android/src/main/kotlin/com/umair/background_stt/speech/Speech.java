@@ -11,21 +11,14 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 
-import com.umair.background_stt.speech.ui.SpeechProgressView;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
-/**
- * Helper class to easily work with Android speech recognition.
- *
- * @author Sachin Varma
- */
+
 public class Speech {
 
     private static final String LOG_TAG = "Speech";
@@ -33,7 +26,6 @@ public class Speech {
     private static Speech instance = null;
 
     private SpeechRecognizer mSpeechRecognizer;
-    private SpeechProgressView mProgressView;
     private String mCallingPackage;
     private boolean mPreferOffline = false;
     private boolean mGetPartialResults = true;
@@ -46,12 +38,8 @@ public class Speech {
     private DelayedOperation mDelayedStopListening;
     private Context mContext;
 
-    private TextToSpeech mTextToSpeech;
     private final Map<String, TextToSpeechCallback> mTtsCallbacks = new HashMap<>();
     private Locale mLocale = Locale.getDefault();
-    private float mTtsRate = 1.0f;
-    private float mTtsPitch = 1.0f;
-    private int mTtsQueueMode = TextToSpeech.QUEUE_FLUSH;
     private long mStopListeningDelayInMs = 10000;
     private long mTransitionMinimumDelay = 1200;
     private long mLastActionTimestamp;
@@ -76,8 +64,6 @@ public class Speech {
         }
     };
 
-    private UtteranceProgressListener mTtsProgressListener;
-
     private final RecognitionListener mListener = new RecognitionListener() {
 
         @Override
@@ -88,9 +74,6 @@ public class Speech {
 
         @Override
         public void onBeginningOfSpeech() {
-            if (mProgressView != null)
-                mProgressView.onBeginningOfSpeech();
-
             mDelayedStopListening.start(new DelayedOperation.Operation() {
                 @Override
                 public void onDelayedOperation() {
@@ -113,9 +96,6 @@ public class Speech {
                 Logger.error(Speech.class.getSimpleName(),
                         "Unhandled exception in delegate onSpeechRmsChanged", exc);
             }
-
-            if (mProgressView != null)
-                mProgressView.onRmsChanged(v);
         }
 
         @Override
@@ -169,9 +149,6 @@ public class Speech {
                         "Unhandled exception in delegate onSpeechResult", exc);
             }
 
-            if (mProgressView != null)
-                mProgressView.onResultOrOnError();
-
             initSpeechRecognizer(mContext);
         }
 
@@ -188,8 +165,7 @@ public class Speech {
 
         @Override
         public void onEndOfSpeech() {
-            if (mProgressView != null)
-                mProgressView.onEndOfSpeech();
+
         }
 
         @Override
@@ -198,14 +174,8 @@ public class Speech {
         }
     };
 
-    private Speech(final Context context) {
-        initSpeechRecognizer(context);
-        initTts(context);
-    }
-
     private Speech(final Context context, final String callingPackage) {
         initSpeechRecognizer(context);
-        initTts(context);
         mCallingPackage = callingPackage;
     }
 
@@ -237,17 +207,6 @@ public class Speech {
 
         mPartialData.clear();
         mUnstableData = null;
-    }
-
-    private void initTts(final Context context) {
-        if (mTextToSpeech == null) {
-            mTtsProgressListener = new TtsProgressListener(mContext, mTtsCallbacks);
-            mTextToSpeech = new TextToSpeech(context.getApplicationContext(), mTttsInitListener);
-            mTextToSpeech.setOnUtteranceProgressListener(mTtsProgressListener);
-            mTextToSpeech.setLanguage(mLocale);
-            mTextToSpeech.setPitch(mTtsPitch);
-            mTextToSpeech.setSpeechRate(mTtsRate);
-        }
     }
 
     private void initDelayedStopListening(final Context context) {
@@ -300,16 +259,6 @@ public class Speech {
                 }
             }
 
-            if (mTextToSpeech != null) {
-                try {
-                    mTtsCallbacks.clear();
-                    mTextToSpeech.stop();
-                    mTextToSpeech.shutdown();
-                } catch (final Exception exc) {
-                    Logger.error(getClass().getSimpleName(), "Warning while de-initing text to speech", exc);
-                }
-            }
-
             unregisterDelegate();
             instance = null;
         }
@@ -340,21 +289,7 @@ public class Speech {
      * @throws SpeechRecognitionNotAvailable      when speech recognition is not available on the device
      * @throws GoogleVoiceTypingDisabledException when google voice typing is disabled on the device
      */
-    public void startListening(final SpeechDelegate delegate)
-            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
-        startListening(null, delegate);
-    }
-
-    /**
-     * Starts voice recognition.
-     *
-     * @param progressView view in which to draw speech animation
-     * @param delegate     delegate which will receive speech recognition events and status
-     * @throws SpeechRecognitionNotAvailable      when speech recognition is not available on the device
-     * @throws GoogleVoiceTypingDisabledException when google voice typing is disabled on the device
-     */
-    public void startListening(final SpeechProgressView progressView, final SpeechDelegate delegate)
-            throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
+    public void startListening(SpeechDelegate delegate) throws SpeechRecognitionNotAvailable, GoogleVoiceTypingDisabledException {
         if (mIsListening) return;
 
         if (mSpeechRecognizer == null)
@@ -405,7 +340,6 @@ public class Speech {
 
     private void unregisterDelegate() {
         mDelegate = null;
-        mProgressView = null;
     }
 
     private void updateLastActionTimestamp() {
@@ -421,12 +355,15 @@ public class Speech {
      * This method does nothing if voice listening is not active
      */
     public void stopListening() {
-        if (!mIsListening) return;
-
-        if (throttleAction()) {
-            Logger.debug(getClass().getSimpleName(), "Hey man calm down! Throttling stop to prevent disaster!");
+        if (!mIsListening) {
+            Log.i(LOG_TAG,"stopListening: Already listening");
             return;
         }
+
+       /* if (throttleAction()) {
+            //Logger.debug(getClass().getSimpleName(), "Hey man calm down! Throttling stop to prevent disaster!");
+            return;
+        }*/
 
         mIsListening = false;
         updateLastActionTimestamp();
@@ -467,151 +404,6 @@ public class Speech {
      */
     public boolean isListening() {
         return mIsListening;
-    }
-
-    /**
-     * Uses text to speech to transform a written message into a sound.
-     *
-     * @param message message to play
-     */
-    public void say(final String message) {
-        say(message, null);
-    }
-
-    /**
-     * Uses text to speech to transform a written message into a sound.
-     *
-     * @param message  message to play
-     * @param callback callback which will receive progress status of the operation
-     */
-    public void say(final String message, final TextToSpeechCallback callback) {
-
-        final String utteranceId = UUID.randomUUID().toString();
-
-        if (callback != null) {
-            mTtsCallbacks.put(utteranceId, callback);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mTextToSpeech.speak(message, mTtsQueueMode, null, utteranceId);
-        } else {
-            final HashMap<String, String> params = new HashMap<>();
-            params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId);
-            mTextToSpeech.speak(message, mTtsQueueMode, params);
-        }
-    }
-
-    /**
-     * Stops text to speech.
-     */
-    public void stopTextToSpeech() {
-        if (mTextToSpeech != null) {
-            mTextToSpeech.stop();
-        }
-    }
-
-    /**
-     * Set whether to only use an offline speech recognition engine.
-     * The default is false, meaning that either network or offline recognition engines may be used.
-     *
-     * @param preferOffline true to prefer offline engine, false to use either one of the two
-     * @return speech instance
-     */
-    public Speech setPreferOffline(final boolean preferOffline) {
-        mPreferOffline = preferOffline;
-        return this;
-    }
-
-    /**
-     * Set whether partial results should be returned by the recognizer as the user speaks
-     * (default is true). The server may ignore a request for partial results in some or all cases.
-     *
-     * @param getPartialResults true to get also partial recognition results, false otherwise
-     * @return speech instance
-     */
-    public Speech setGetPartialResults(final boolean getPartialResults) {
-        mGetPartialResults = getPartialResults;
-        return this;
-    }
-
-    /**
-     * Sets text to speech and recognition language.
-     * Defaults to device language setting.
-     *
-     * @param locale new locale
-     * @return speech instance
-     */
-    public Speech setLocale(final Locale locale) {
-        mLocale = locale;
-        if (mTextToSpeech != null)
-            mTextToSpeech.setLanguage(locale);
-        return this;
-    }
-
-    /**
-     * Sets the speech rate. This has no effect on any pre-recorded speech.
-     *
-     * @param rate Speech rate. 1.0 is the normal speech rate, lower values slow down the speech
-     *             (0.5 is half the normal speech rate), greater values accelerate it
-     *             (2.0 is twice the normal speech rate).
-     * @return speech instance
-     */
-    public Speech setTextToSpeechRate(final float rate) {
-        mTtsRate = rate;
-        mTextToSpeech.setSpeechRate(rate);
-        return this;
-    }
-
-    /**
-     * Sets the speech pitch for the TextToSpeech engine.
-     * This has no effect on any pre-recorded speech.
-     *
-     * @param pitch Speech pitch. 1.0 is the normal pitch, lower values lower the tone of the
-     *              synthesized voice, greater values increase it.
-     * @return speech instance
-     */
-    public Speech setTextToSpeechPitch(final float pitch) {
-        mTtsPitch = pitch;
-        mTextToSpeech.setPitch(pitch);
-        return this;
-    }
-
-    /**
-     * Sets the idle timeout after which the listening will be automatically stopped.
-     *
-     * @param milliseconds timeout in milliseconds
-     * @return speech instance
-     */
-    public Speech setStopListeningAfterInactivity(final long milliseconds) {
-        mStopListeningDelayInMs = milliseconds;
-        initDelayedStopListening(mContext);
-        return this;
-    }
-
-    /**
-     * Sets the minimum interval between start/stop events. This is useful to prevent
-     * monkey input from users.
-     *
-     * @param milliseconds minimum interval betweeb state change in milliseconds
-     * @return speech instance
-     */
-    public Speech setTransitionMinimumDelay(final long milliseconds) {
-        mTransitionMinimumDelay = milliseconds;
-        return this;
-    }
-
-    /**
-     * Sets the text to speech queue mode.
-     * By default is TextToSpeech.QUEUE_FLUSH, which is faster, because it clears all the
-     * messages before speaking the new one. TextToSpeech.QUEUE_ADD adds the last message
-     * to speak in the queue, without clearing the messages that have been added.
-     *
-     * @param mode It can be either TextToSpeech.QUEUE_ADD or TextToSpeech.QUEUE_FLUSH.
-     * @return speech instance
-     */
-    public Speech setTextToSpeechQueueMode(final int mode) {
-        mTtsQueueMode = mode;
-        return this;
     }
 
     private Speech.stopDueToDelay mListenerDelay;

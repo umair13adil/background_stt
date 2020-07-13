@@ -12,22 +12,83 @@ import android.os.CountDownTimer
 import android.os.IBinder
 import android.util.Log
 import com.example.background_tts_stt.SpeechResult
-import com.umair.background_stt.speech.GoogleVoiceTypingDisabledException
-import com.umair.background_stt.speech.Speech
+import com.umair.background_stt.speech.*
 import com.umair.background_stt.speech.Speech.stopDueToDelay
-import com.umair.background_stt.speech.SpeechDelegate
-import com.umair.background_stt.speech.SpeechRecognitionNotAvailable
 import java.util.*
 
-class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
+class SpeechListenService : Service(), stopDueToDelay {
 
-    private val TAG = "SpeechListenService"
-    private val adjustMute = ADJUST_MUTE
-    private val adjustFull = ADJUST_RAISE
+    companion object {
+        private val TAG = "SpeechListenService"
+        private var context: Context? = null
+        var confirmationInProgress = false
+        private var lastSentResult = ""
 
+        @JvmStatic
+        private var feedBackProvider: TextToSpeechFeedbackProvider? = null
+
+        fun doOnIntentConfirmation(text: String) {
+            Speech.getInstance().stopListening()
+            confirmationInProgress = true
+            feedBackProvider?.speak(text)
+        }
+
+        fun stopSpeechListener() {
+            feedBackProvider?.disposeTextToSpeech()
+            Speech.getInstance().shutdown()
+        }
+
+        fun startListening() {
+            if (Speech.isActive()) {
+                Speech.getInstance().startListening(object : SpeechDelegate {
+                    override fun onStartOfSpeech() {
+                    }
+
+                    override fun onSpeechRmsChanged(value: Float) {
+                    }
+
+                    override fun onSpeechPartialResults(results: List<String>) {
+                        if (results.isNotEmpty() && results.size > 1) {
+                            for (partial in results) {
+                                if (partial.isNotEmpty()) {
+                                    if (partial.isNotEmpty()) {
+                                        sendResults(partial, true)
+                                    }
+                                }
+                            }
+                        } else {
+                            if (results.first().isNotEmpty()) {
+                                sendResults(results.first(), true)
+                            }
+                        }
+
+                    }
+
+                    override fun onSpeechResult(result: String) {
+                        if (result.isNotEmpty()) {
+                            sendResults(result, false)
+                        }
+                    }
+                })
+            }
+        }
+
+        private fun sendResults(result: String, isPartial: Boolean) {
+            if (!confirmationInProgress) {
+                if (lastSentResult.isEmpty() || lastSentResult != result) {
+                    BackgroundSttPlugin.eventSink?.success(SpeechResult(result, isPartial).toString())
+                    lastSentResult = result
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
+
+        context = this
+
+        feedBackProvider = TextToSpeechFeedbackProvider(this)
 
         BackgroundSttPlugin.binaryMessenger?.let {
             Log.i(TAG, "$TAG service running.")
@@ -38,7 +99,6 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (Speech.isActive()) {
-            delegate = this
             Speech.getInstance().setListener(this)
             if (Speech.getInstance().isListening) {
                 Speech.getInstance().stopListening()
@@ -46,7 +106,6 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
             } else {
                 System.setProperty("rx.unsafe-disable", "True")
                 try {
-                    Speech.getInstance().stopTextToSpeech()
                     startListening()
                 } catch (exc: SpeechRecognitionNotAvailable) {
                     Log.e(TAG, "${exc.message}")
@@ -61,40 +120,6 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
 
     override fun onBind(intent: Intent): IBinder? {
         return null
-    }
-
-    override fun onStartOfSpeech() {
-        //Log.i(TAG, "$TAG onStartOfSpeech")
-    }
-
-    override fun onSpeechRmsChanged(value: Float) {
-        //Log.i(TAG, "$TAG onSpeechRmsChanged: $value")
-    }
-
-    override fun onSpeechPartialResults(results: List<String>) {
-        if (results.isNotEmpty() && results.size > 1) {
-            for (partial in results) {
-                if (partial.isNotEmpty()) {
-                    if (partial.isNotEmpty()) {
-                        Log.i(TAG, "$TAG onSpeechPartialResults: $partial")
-                        BackgroundSttPlugin.eventSink?.success(SpeechResult(partial, true).toString())
-                    }
-                }
-            }
-        } else {
-            if (results.first().isNotEmpty()) {
-                Log.i(TAG, "$TAG onSpeechPartialResults: ${results.first()}")
-                BackgroundSttPlugin.eventSink?.success(SpeechResult(results.first(), false).toString())
-            }
-        }
-
-    }
-
-    override fun onSpeechResult(result: String) {
-        if (result.isNotEmpty()) {
-            Log.i(TAG, "$TAG onSpeechResult: $result")
-            BackgroundSttPlugin.eventSink?.success(SpeechResult(result, false).toString())
-        }
     }
 
     override fun onSpecifiedCommandPronounced(event: String) {
@@ -123,33 +148,7 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
      * Function to remove the beep sound of voice recognizer.
      */
     private fun muteSounds() {
-        //Log.i(TAG, "$TAG Muting all sounds..")
-        (getSystemService(Context.AUDIO_SERVICE) as AudioManager).let { audioManager ->
-            audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, adjustMute, 0)
-            audioManager.adjustStreamVolume(AudioManager.STREAM_ALARM, adjustMute, 0)
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, adjustMute, 0)
-            audioManager.adjustStreamVolume(AudioManager.STREAM_RING, adjustMute, 0)
-            audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, adjustMute, 0)
-        }
-    }
-
-    private fun resetSounds() {
-        object : CountDownTimer(500, 500) {
-            override fun onFinish() {
-                //Log.i(TAG, "$TAG Un-mute all sounds..")
-                (getSystemService(Context.AUDIO_SERVICE) as AudioManager).let { audioManager ->
-                    audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, adjustFull, 0)
-                    audioManager.adjustStreamVolume(AudioManager.STREAM_ALARM, adjustFull, 0)
-                    audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, adjustFull, 0)
-                    audioManager.adjustStreamVolume(AudioManager.STREAM_RING, adjustFull, 0)
-                    audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, adjustFull, 0)
-                }
-            }
-
-            override fun onTick(millisUntilFinished: Long) {
-            }
-
-        }.start()
+        adjustSound(ADJUST_MUTE)
     }
 
     override fun onTaskRemoved(rootIntent: Intent) {
@@ -159,16 +158,5 @@ class SpeechListenService : Service(), SpeechDelegate, stopDueToDelay {
         val alarmManager = (getSystemService(Context.ALARM_SERVICE) as AlarmManager)
         alarmManager[AlarmManager.ELAPSED_REALTIME_WAKEUP, 1000] = service
         super.onTaskRemoved(rootIntent)
-    }
-
-    companion object {
-        var delegate: SpeechDelegate? = null
-    }
-
-    private fun startListening() {
-        if (Speech.isActive()) {
-            //Log.i(TAG, "$TAG startListening: Start Listening..")
-            Speech.getInstance().startListening(null, this)
-        }
     }
 }

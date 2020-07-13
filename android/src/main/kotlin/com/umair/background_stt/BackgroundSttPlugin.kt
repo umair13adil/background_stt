@@ -85,11 +85,18 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
                             result.success("Started Speech listener service.")
                         }
                     }
+                    "confirmIntent" -> {
+                        val confirmationText = getStringValueById("confirmationText", call)
+                        if (confirmationText.isNotEmpty()) {
+                            SpeechListenService.doOnIntentConfirmation(confirmationText)
+                            result.success("Requested confirmation for: $confirmationText")
+                        }
+                    }
                     "stopService" -> {
                         eventSink?.endOfStream()
                         eventSink = null
                         isStarted = false
-                        context?.let {
+                        context.let {
                             try {
                                 context.stopService(Intent(context, SpeechListenService::class.java))
                             } catch (e: Exception) {
@@ -209,7 +216,7 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
     override fun onDetachedFromActivity() {
         Log.i(TAG, "onDetachedFromActivity")
         currentActivity = null
-        Speech.getInstance().shutdown()
+        SpeechListenService.stopSpeechListener()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>?, grantResults: IntArray?): Boolean {
