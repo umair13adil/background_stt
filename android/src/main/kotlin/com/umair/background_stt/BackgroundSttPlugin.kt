@@ -89,10 +89,16 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
                         val confirmationText = getStringValueById("confirmationText", call)
                         val positiveCommand = getStringValueById("positiveCommand", call)
                         val negativeCommand = getStringValueById("negativeCommand", call)
+                        val voiceInputMessage = getStringValueById("voiceInputMessage", call)
+                        val voiceInput = getBoolValueById("voiceInput", call)
 
                         if (confirmationText.isNotEmpty() && positiveCommand.isNotEmpty() && negativeCommand.isNotEmpty()) {
-                            SpeechListenService.doOnIntentConfirmation(confirmationText, positiveCommand, negativeCommand)
-                            result.success("Requested confirmation for: $confirmationText")
+                            SpeechListenService.doOnIntentConfirmation(confirmationText, positiveCommand, negativeCommand, voiceInputMessage, voiceInput)
+                            result.success("Requested confirmation for: $confirmationText\n " +
+                                    "Positive Reply: $positiveCommand\n " +
+                                    "Negative Reply: $negativeCommand\n " +
+                                    "Voice Input Message: $voiceInputMessage\n " +
+                                    "Voice Input: $voiceInput")
                         }
                     }
                     "stopService" -> {

@@ -23,9 +23,9 @@ class SpeechListenService : Service(), stopDueToDelay {
         @JvmStatic
         private var feedBackProvider: TextToSpeechFeedbackProvider? = null
 
-        fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String) {
+        fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String, voiceInputMessage: String, voiceInput: Boolean) {
             Speech.getInstance().stopListening()
-            feedBackProvider?.setConfirmationData(text, positiveText, negativeText)
+            feedBackProvider?.setConfirmationData(text, positiveText, negativeText, voiceInputMessage, voiceInput)
             feedBackProvider?.speak(text)
         }
 
@@ -72,12 +72,8 @@ class SpeechListenService : Service(), stopDueToDelay {
         private fun sendResults(result: String, isPartial: Boolean) {
 
             if (feedBackProvider?.isConfirmationInProgress()!!) {
-                if (!feedBackProvider?.isWaitingForConfirmation()!!) {
-                    feedBackProvider?.doOnConfirmationProvided(result)
-                    feedBackProvider?.cancelConfirmation()
-                }
+                feedBackProvider?.doOnConfirmationProvided(result)
             } else {
-
                 if (lastSentResult.isEmpty() || lastSentResult != result) {
                     BackgroundSttPlugin.eventSink?.success(SpeechResult(result, isPartial).toString())
                     lastSentResult = result

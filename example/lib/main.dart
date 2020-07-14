@@ -32,8 +32,8 @@ class _MyAppState extends State<MyApp> {
     });
 
     _service.getConfirmationResults().onData((data) {
-      print("getConfirmationResults: Confirmation"
-          "Text: ${data.confirmationIntent} , "
+      print(
+          "getConfirmationResults: Confirmation Text: ${data.confirmationIntent} , "
           "User Replied: ${data.confirmedResult} , "
           "Is Confirmation Success?: ${data.isSuccess}");
 
@@ -58,9 +58,16 @@ class _MyAppState extends State<MyApp> {
           negativeCommand: "no");
     } else if (command == "hello") {
       _service.confirmIntent(
-          confirmationText: "Did you say hello?",
+          confirmationText: "Hello to you!",
           positiveCommand: "hi",
           negativeCommand: "bye");
+    } else if (command == "address") {
+      _service.confirmIntent(
+          confirmationText: "What is the address?",
+          positiveCommand: "yes",
+          negativeCommand: "no",
+          voiceInputMessage: "Is the address correct?",
+          voiceInput: true);
     }
   }
 

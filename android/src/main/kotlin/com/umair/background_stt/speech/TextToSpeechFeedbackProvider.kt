@@ -23,8 +23,11 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private var confirmationIntent: ConfirmIntent? = null
     private var confirmationInProgress = false
-    private var waitingForConfirmation = false
     private var confirmationProvided = false
+    private var waitingForVoiceInput = false
+    private var voiceReplyProvided = false
+    private var maxTries = 10
+    private var tries = 0
 
     init {
         setUpTextToSpeech()
@@ -82,20 +85,18 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
     }
 
     private fun doOnSpeechComplete() {
-        waitingForConfirmation = true
         handler.postDelayed({
+            if (!voiceReplyProvided) {
+                waitingForVoiceInput = false
+            }
+            Log.i(TAG, "Listening to voice commands..")
             context.adjustSound(AudioManager.ADJUST_MUTE)
             SpeechListenService.startListening()
-            waitingForConfirmation = false
         }, 2500)
     }
 
     fun isConfirmationInProgress(): Boolean {
         return confirmationInProgress
-    }
-
-    fun isWaitingForConfirmation(): Boolean {
-        return waitingForConfirmation
     }
 
     fun cancelConfirmation() {
@@ -106,37 +107,93 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
         }
     }
 
-    fun setConfirmationData(confirmationText: String, positiveCommand: String, negativeCommand: String) {
+    fun setConfirmationData(confirmationText: String, positiveCommand: String, negativeCommand: String, voiceInputMessage: String, voiceInput: Boolean) {
+        tries = 0
         confirmationInProgress = true
-        confirmationIntent = ConfirmIntent(confirmationText, positiveCommand, negativeCommand)
-        Log.i(TAG, "setConfirmationData: Confirmation data set.")
+        confirmationIntent = ConfirmIntent(confirmationText, positiveCommand, negativeCommand, voiceInputMessage, voiceInput)
+        waitingForVoiceInput = voiceInput
     }
 
     fun doOnConfirmationProvided(text: String) {
         if (text.isNotEmpty()) {
-            val reply = text.substringBefore("")
-            if (reply.isNotEmpty()) {
-                if (confirmationInProgress && !waitingForConfirmation) {
-                    confirmationIntent?.let { confirmationIntent ->
-                        if (confirmationIntent.confirmationIntent.isNotEmpty()) {
-                            Log.i(TAG, "doOnConfirmationProvided: Confirmation provided: \"$reply\"")
-                            var isSuccess = false
-                            if (confirmationIntent.positiveCommand == reply || confirmationIntent.negativeCommand == reply) {
-                                isSuccess = true
-                            }
-                            if (isSuccess) {
-                                BackgroundSttPlugin.eventSink?.success(ConfirmationResult(confirmationIntent.confirmationIntent, reply, isSuccess).toString())
-                            } else {
-                                BackgroundSttPlugin.eventSink?.success(ConfirmationResult(confirmationIntent.confirmationIntent, "", isSuccess).toString())
-                            }
-                            this.confirmationIntent = null
-                            confirmationInProgress = false
-                            confirmationProvided = true
+            if (confirmationInProgress) {
+                confirmationIntent?.let { confirmationIntent ->
+                    if (confirmationIntent.voiceInput && !voiceReplyProvided) {
+                        doForVoiceInput(text)
+                    } else {
+                        doForConfirmation(text)
+                    }
+                }
+            } else {
+                Log.e(TAG, "doOnConfirmationProvided: No confirmation in progress!")
+                sendConfirmation("", false)
+            }
+        }
+    }
+
+    private fun doForConfirmation(text: String) {
+        val reply = text.substringBefore(" ")
+        Log.i(TAG, "doForConfirmation: Reply: \"$reply\"")
+        if (reply.isNotEmpty()) {
+            confirmationIntent?.let { confirmationIntent ->
+                if (confirmationIntent.confirmationIntent.isNotEmpty()) {
+                    var isSuccess = false
+                    if (confirmationIntent.positiveCommand.matches(Regex(reply)) || confirmationIntent.negativeCommand.matches(Regex(reply))) {
+                        Log.i(TAG, "doForConfirmation: Confirmation provided: \"$reply\"")
+                        isSuccess = true
+                        sendConfirmation(reply, isSuccess)
+                    } else {
+                        if (tries < maxTries) {
+                            Log.e(TAG, "doForConfirmation: No appropriate reply received! Try Count: $tries")
+                            tries++
+                        } else {
+                            Log.i(TAG, "doForConfirmation: Confirmation failed.")
+                            sendConfirmation(reply, isSuccess)
                         }
                     }
-                    Log.i(TAG, "doOnConfirmationProvided: Confirmation provided: $text")
                 }
             }
+        } else {
+            Log.e(TAG, "doOnConfirmationProvided: No appropriate reply received!")
+        }
+    }
+
+    private fun doForVoiceInput(text: String) {
+        if (!voiceReplyProvided) {
+            if (!waitingForVoiceInput) {
+
+                Log.i(TAG, "doForVoiceInput: Voice Reply: \"$text\"")
+                confirmationIntent?.voiceMessage = text
+
+                handler.postDelayed({
+                    voiceReplyProvided = true
+                    Log.i(TAG, "doForVoiceInput: Starting Confirmation.\n " +
+                            "Positive Reply: ${confirmationIntent?.positiveCommand}\n " +
+                            "Negative Reply: ${confirmationIntent?.negativeCommand}")
+                    confirmationIntent?.voiceInputMessage?.let {
+                        Speech.getInstance().stopListening()
+                        speak(it)
+                    }
+                }, 4000)
+            }
+        }
+    }
+
+    private fun sendConfirmation(reply: String, isSuccess: Boolean) {
+        confirmationIntent?.let {
+            BackgroundSttPlugin.eventSink?.success(ConfirmationResult(it.confirmationIntent, reply, isSuccess).toString())
+            Log.i(TAG, "sendConfirmation: Confirmation sent.")
+
+            this.confirmationIntent = null
+            tries = 0
+
+            handler.postDelayed({
+                confirmationInProgress = false
+                confirmationProvided = true
+                waitingForVoiceInput = false
+                voiceReplyProvided = false
+                Log.i(TAG, "sendConfirmation: Confirmation completed.")
+            }, 2000)
         }
     }
 }

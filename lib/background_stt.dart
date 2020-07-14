@@ -57,12 +57,16 @@ class BackgroundStt {
   Future<String> confirmIntent(
       {String confirmationText,
       String positiveCommand,
-      String negativeCommand}) async {
+      String negativeCommand,
+      String voiceInputMessage,
+      bool voiceInput}) async {
     final String result =
         await _channel.invokeMethod('confirmIntent', <String, dynamic>{
       'confirmationText': confirmationText,
       'positiveCommand': positiveCommand,
       'negativeCommand': negativeCommand,
+      'voiceInputMessage': voiceInputMessage,
+      'voiceInput': voiceInput,
     });
     print('[$_tag] confirmIntent: $result');
     return result;
