@@ -13,6 +13,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   var _service = BackgroundStt();
   var result = "Say something!";
+  var confirmation = "";
+  var confirmationReply = "";
 
   @override
   void initState() {
@@ -23,7 +25,21 @@ class _MyAppState extends State<MyApp> {
       _doOnSpeechCommandMatch(data.result);
 
       setState(() {
+        confirmation = "";
+        confirmationReply = "";
         result = data.result;
+      });
+    });
+
+    _service.getConfirmationResults().onData((data) {
+      print("getConfirmationResults: Confirmation"
+          "Text: ${data.confirmationIntent} , "
+          "User Replied: ${data.confirmedResult} , "
+          "Is Confirmation Success?: ${data.isSuccess}");
+
+      setState(() {
+        confirmation = data.confirmationIntent;
+        confirmationReply = data.confirmedResult;
       });
     });
     super.initState();
@@ -31,11 +47,20 @@ class _MyAppState extends State<MyApp> {
 
   void _doOnSpeechCommandMatch(String command) {
     if (command == "start") {
-      _service.confirmIntent("Do you want to start?");
+      _service.confirmIntent(
+          confirmationText: "Do you want to start?",
+          positiveCommand: "yes",
+          negativeCommand: "no");
     } else if (command == "stop") {
-      _service.confirmIntent("Do you want to stop?");
+      _service.confirmIntent(
+          confirmationText: "Do you want to stop?",
+          positiveCommand: "yes",
+          negativeCommand: "no");
     } else if (command == "hello") {
-      _service.confirmIntent("Did you say hello?");
+      _service.confirmIntent(
+          confirmationText: "Did you say hello?",
+          positiveCommand: "hi",
+          negativeCommand: "bye");
     }
   }
 
@@ -53,7 +78,19 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Background Speech-to-Text'),
         ),
         body: Center(
-          child: Text('$result'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text('$result\n\n'),
+              confirmation.isNotEmpty
+                  ? Text('Confirmation: $confirmation')
+                  : Container(),
+              confirmationReply.isNotEmpty
+                  ? Text('Reply: $confirmationReply')
+                  : Container(),
+            ],
+          ),
         ),
       ),
     );

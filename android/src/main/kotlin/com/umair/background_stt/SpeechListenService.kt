@@ -5,13 +5,10 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
 import android.media.AudioManager.ADJUST_MUTE
-import android.media.AudioManager.ADJUST_RAISE
-import android.os.CountDownTimer
 import android.os.IBinder
 import android.util.Log
-import com.example.background_tts_stt.SpeechResult
+import com.umair.background_stt.models.SpeechResult
 import com.umair.background_stt.speech.*
 import com.umair.background_stt.speech.Speech.stopDueToDelay
 import java.util.*
@@ -21,15 +18,14 @@ class SpeechListenService : Service(), stopDueToDelay {
     companion object {
         private val TAG = "SpeechListenService"
         private var context: Context? = null
-        var confirmationInProgress = false
         private var lastSentResult = ""
 
         @JvmStatic
         private var feedBackProvider: TextToSpeechFeedbackProvider? = null
 
-        fun doOnIntentConfirmation(text: String) {
+        fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String) {
             Speech.getInstance().stopListening()
-            confirmationInProgress = true
+            feedBackProvider?.setConfirmationData(text, positiveText, negativeText)
             feedBackProvider?.speak(text)
         }
 
@@ -74,7 +70,14 @@ class SpeechListenService : Service(), stopDueToDelay {
         }
 
         private fun sendResults(result: String, isPartial: Boolean) {
-            if (!confirmationInProgress) {
+
+            if (feedBackProvider?.isConfirmationInProgress()!!) {
+                if (!feedBackProvider?.isWaitingForConfirmation()!!) {
+                    feedBackProvider?.doOnConfirmationProvided(result)
+                    feedBackProvider?.cancelConfirmation()
+                }
+            } else {
+
                 if (lastSentResult.isEmpty() || lastSentResult != result) {
                     BackgroundSttPlugin.eventSink?.success(SpeechResult(result, isPartial).toString())
                     lastSentResult = result

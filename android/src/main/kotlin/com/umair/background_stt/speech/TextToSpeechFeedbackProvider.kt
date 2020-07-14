@@ -3,18 +3,28 @@ package com.umair.background_stt.speech
 import android.content.Context
 import android.media.AudioManager
 import android.os.Build
-import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import com.umair.background_stt.BackgroundSttPlugin
 import com.umair.background_stt.SpeechListenService
 import com.umair.background_stt.adjustSound
+import com.umair.background_stt.models.ConfirmIntent
+import com.umair.background_stt.models.ConfirmationResult
+import com.umair.background_stt.models.SpeechResult
 import java.util.*
 
 class TextToSpeechFeedbackProvider constructor(val context: Context) {
 
     private val TAG = "TextToSpeechFeedback"
     private var textToSpeech: TextToSpeech? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var confirmationIntent: ConfirmIntent? = null
+    private var confirmationInProgress = false
+    private var waitingForConfirmation = false
+    private var confirmationProvided = false
 
     init {
         setUpTextToSpeech()
@@ -72,8 +82,61 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
     }
 
     private fun doOnSpeechComplete() {
-        context.adjustSound(AudioManager.ADJUST_MUTE)
-        SpeechListenService.startListening()
-        SpeechListenService.confirmationInProgress = false
+        waitingForConfirmation = true
+        handler.postDelayed({
+            context.adjustSound(AudioManager.ADJUST_MUTE)
+            SpeechListenService.startListening()
+            waitingForConfirmation = false
+        }, 2500)
+    }
+
+    fun isConfirmationInProgress(): Boolean {
+        return confirmationInProgress
+    }
+
+    fun isWaitingForConfirmation(): Boolean {
+        return waitingForConfirmation
+    }
+
+    fun cancelConfirmation() {
+        if (confirmationProvided) {
+            handler.postDelayed({
+                confirmationInProgress = false
+            }, 3000)
+        }
+    }
+
+    fun setConfirmationData(confirmationText: String, positiveCommand: String, negativeCommand: String) {
+        confirmationInProgress = true
+        confirmationIntent = ConfirmIntent(confirmationText, positiveCommand, negativeCommand)
+        Log.i(TAG, "setConfirmationData: Confirmation data set.")
+    }
+
+    fun doOnConfirmationProvided(text: String) {
+        if (text.isNotEmpty()) {
+            val reply = text.substringBefore("")
+            if (reply.isNotEmpty()) {
+                if (confirmationInProgress && !waitingForConfirmation) {
+                    confirmationIntent?.let { confirmationIntent ->
+                        if (confirmationIntent.confirmationIntent.isNotEmpty()) {
+                            Log.i(TAG, "doOnConfirmationProvided: Confirmation provided: \"$reply\"")
+                            var isSuccess = false
+                            if (confirmationIntent.positiveCommand == reply || confirmationIntent.negativeCommand == reply) {
+                                isSuccess = true
+                            }
+                            if (isSuccess) {
+                                BackgroundSttPlugin.eventSink?.success(ConfirmationResult(confirmationIntent.confirmationIntent, reply, isSuccess).toString())
+                            } else {
+                                BackgroundSttPlugin.eventSink?.success(ConfirmationResult(confirmationIntent.confirmationIntent, "", isSuccess).toString())
+                            }
+                            this.confirmationIntent = null
+                            confirmationInProgress = false
+                            confirmationProvided = true
+                        }
+                    }
+                    Log.i(TAG, "doOnConfirmationProvided: Confirmation provided: $text")
+                }
+            }
+        }
     }
 }

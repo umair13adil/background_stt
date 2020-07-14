@@ -1,4 +1,4 @@
-package com.example.background_tts_stt
+package com.umair.background_stt.models
 
 data class SpeechResult(var result: String = "", var isPartial: Boolean) {
 
