@@ -47,7 +47,7 @@ Note: Service will keep on running once it is started and can only be stopped by
 #### Setup Intent for Simple Confirmation
 __________________________________________
 
-This can be useful for simple decesions.
+This can be useful for simple decisions.
 
 ```dart
     _service.getSpeechResults().onData((data) {

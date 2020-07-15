@@ -1,6 +1,6 @@
 name: background_stt
 description: A flutter plugin for Speech-to-Text.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/umair13adil/background_stt
 
 environment:
