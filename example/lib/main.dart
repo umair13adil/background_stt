@@ -15,18 +15,20 @@ class _MyAppState extends State<MyApp> {
   var result = "Say something!";
   var confirmation = "";
   var confirmationReply = "";
+  var voiceReply = "";
 
   @override
   void initState() {
     _service.startSpeechListenService;
     _service.getSpeechResults().onData((data) {
-      print("getSpeechResults: ${data.result} , ${data.isPartial}");
+      print("getSpeechResults: ${data.result} , ${data.isPartial} [STT Mode]");
 
       _doOnSpeechCommandMatch(data.result);
 
       setState(() {
         confirmation = "";
         confirmationReply = "";
+        voiceReply = "";
         result = data.result;
       });
     });
@@ -35,6 +37,7 @@ class _MyAppState extends State<MyApp> {
       print(
           "getConfirmationResults: Confirmation Text: ${data.confirmationIntent} , "
           "User Replied: ${data.confirmedResult} , "
+          "Voice Input Message: ${data.voiceInput} , "
           "Is Confirmation Success?: ${data.isSuccess}");
 
       setState(() {
@@ -69,6 +72,10 @@ class _MyAppState extends State<MyApp> {
           voiceInputMessage: "Is the address correct?",
           voiceInput: true);
     }
+
+    setState(() {
+      confirmation = "$command [Confirmation Mode]";
+    });
   }
 
   @override
@@ -96,6 +103,24 @@ class _MyAppState extends State<MyApp> {
               confirmationReply.isNotEmpty
                   ? Text('Reply: $confirmationReply')
                   : Container(),
+              voiceReply.isNotEmpty
+                  ? Text('Voice Reply: $voiceReply')
+                  : Container(),
+              confirmation.isNotEmpty
+                  ? RaisedButton(
+                      child: Text("Cancel Confirmation"),
+                      onPressed: () async {
+                        await _service.cancelConfirmation;
+
+                        setState(() {
+                          result = "Say something!";
+                          confirmation = "";
+                          confirmationReply = "";
+                          voiceReply = "";
+                        });
+                      },
+                    )
+                  : Container()
             ],
           ),
         ),

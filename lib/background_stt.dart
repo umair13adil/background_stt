@@ -10,8 +10,6 @@ class BackgroundStt {
   static const _channel = const MethodChannel('background_stt');
   static const _eventChannel = EventChannel('background_stt_stream');
 
-  static var _lastResult = "";
-
   static SpeechResult _speechResultSaved = SpeechResult();
   static ConfirmationResult _confirmationResultSaved = ConfirmationResult();
 
@@ -54,6 +52,12 @@ class BackgroundStt {
     return result;
   }
 
+  Future<String> get cancelConfirmation async {
+    final String result = await _channel.invokeMethod('cancelConfirmation');
+    print('[$_tag] $result');
+    return result;
+  }
+
   Future<String> confirmIntent(
       {String confirmationText,
       String positiveCommand,
@@ -85,10 +89,7 @@ class BackgroundStt {
           !event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);
         _speechResultSaved = SpeechResult.fromJson(result);
-        if (_lastResult.isEmpty || _lastResult != _speechResultSaved.result) {
-          _speechListenerController.add(_speechResultSaved);
-          _lastResult = _speechResultSaved.result;
-        }
+        _speechListenerController.add(_speechResultSaved);
       } else if (!event.toString().contains("isPartial") &&
           event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);

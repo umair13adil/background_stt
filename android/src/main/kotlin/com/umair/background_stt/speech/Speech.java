@@ -356,7 +356,7 @@ public class Speech {
      */
     public void stopListening() {
         if (!mIsListening) {
-            Log.i(LOG_TAG,"stopListening: Already listening");
+            //Log.i(LOG_TAG,"stopListening: Already listening");
             return;
         }
 
@@ -367,7 +367,7 @@ public class Speech {
 
         mIsListening = false;
         updateLastActionTimestamp();
-        returnPartialResultsAndRecreateSpeechRecognizer();
+        //returnPartialResultsAndRecreateSpeechRecognizer();
     }
 
     private String getPartialResultsAsString() {

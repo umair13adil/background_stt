@@ -18,15 +18,22 @@ class SpeechListenService : Service(), stopDueToDelay {
     companion object {
         private val TAG = "SpeechListenService"
         private var context: Context? = null
-        private var lastSentResult = ""
 
         @JvmStatic
         private var feedBackProvider: TextToSpeechFeedbackProvider? = null
 
         fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String, voiceInputMessage: String, voiceInput: Boolean) {
-            Speech.getInstance().stopListening()
             feedBackProvider?.setConfirmationData(text, positiveText, negativeText, voiceInputMessage, voiceInput)
-            feedBackProvider?.speak(text)
+
+            if (voiceInput) {
+                feedBackProvider?.speak(text)
+            } else {
+                feedBackProvider?.speak("$text say: $positiveText or $negativeText")
+            }
+        }
+
+        fun cancelConfirmation() {
+            feedBackProvider?.cancelConfirmation(true)
         }
 
         fun stopSpeechListener() {
@@ -74,10 +81,7 @@ class SpeechListenService : Service(), stopDueToDelay {
             if (feedBackProvider?.isConfirmationInProgress()!!) {
                 feedBackProvider?.doOnConfirmationProvided(result)
             } else {
-                if (lastSentResult.isEmpty() || lastSentResult != result) {
-                    BackgroundSttPlugin.eventSink?.success(SpeechResult(result, isPartial).toString())
-                    lastSentResult = result
-                }
+                BackgroundSttPlugin.eventSink?.success(SpeechResult(result, isPartial).toString())
             }
         }
     }
@@ -138,7 +142,9 @@ class SpeechListenService : Service(), stopDueToDelay {
                 } catch (exc: GoogleVoiceTypingDisabledException) {
                     Log.e(TAG, "${exc.message}")
                 }
-                muteSounds()
+                if (!feedBackProvider?.isConfirmationInProgress()!!) {
+                    muteSounds()
+                }
             }
         }
     }

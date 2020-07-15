@@ -114,6 +114,10 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
                             result.success("Stopped Speech listener service.")
                         }
                     }
+                    "cancelConfirmation" -> {
+                        SpeechListenService.cancelConfirmation()
+                        result.success("Confirmation cancelled.")
+                    }
                     else -> result.notImplemented()
                 }
             }
