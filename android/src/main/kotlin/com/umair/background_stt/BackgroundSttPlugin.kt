@@ -25,7 +25,6 @@ import io.flutter.plugin.common.PluginRegistry
 class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.RequestPermissionsResultListener {
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        Log.i(TAG, "onAttachedToEngine")
         setUpPluginMethods(flutterPluginBinding.applicationContext, flutterPluginBinding.binaryMessenger)
     }
 
@@ -43,7 +42,6 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
 
         @JvmStatic
         fun registerWith(registrar: PluginRegistry.Registrar) {
-            Log.i(TAG, "registerWith: BackgroundSttPlugin")
             val instance = BackgroundSttPlugin()
             registrar.addRequestPermissionsResultListener(instance)
             requestRecordPermission()
@@ -52,7 +50,6 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
 
         @JvmStatic
         fun registerWith(messenger: BinaryMessenger, context: Context) {
-            Log.i(TAG, "registerWith: BackgroundSttPlugin")
             val instance = BackgroundSttPlugin()
             requestRecordPermission()
             setUpPluginMethods(context, messenger)
@@ -71,7 +68,6 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
 
         @JvmStatic
         private fun setUpPluginMethods(context: Context, messenger: BinaryMessenger) {
-            Log.i(TAG, "setUpPluginMethods")
 
             channel = MethodChannel(messenger, "background_stt")
             notifyIfPermissionsGranted(context)
@@ -118,6 +114,18 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
                         SpeechListenService.cancelConfirmation()
                         result.success("Confirmation cancelled.")
                     }
+                    "resumeListening" -> {
+                        SpeechListenService.isListening(true)
+                        result.success("Speech listener resumed.")
+                    }
+                    "pauseListening" -> {
+                        SpeechListenService.isListening(false)
+                        result.success("Speech listener paused.")
+                    }
+                    "speak" -> {
+                        val speechText = getStringValueById("speechText", call)
+                        SpeechListenService.speak(speechText)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -149,7 +157,6 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
         @JvmStatic
         private fun doIfPermissionsGranted() {
             channel?.let {
-                Log.i(TAG, "doIfPermissionsGranted: Send event.")
                 it.invokeMethod("recordPermissionsGranted", "")
             }
             currentActivity?.enableAutoStart()
@@ -195,13 +202,11 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
 
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         currentActivity = null
-        Log.i(TAG, "onDetachedFromEngine")
         channel?.setMethodCallHandler(null)
         event_channel?.setStreamHandler(null)
     }
 
     override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-        Log.i(TAG, "onAttachedToActivity")
         currentActivity = activityPluginBinding.activity
         activityPluginBinding.addRequestPermissionsResultListener(this)
         requestRecordPermission()
@@ -217,17 +222,15 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        Log.i(TAG, "onDetachedFromActivityForConfigChanges")
+
     }
 
     override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
-        Log.i(TAG, "onReattachedToActivityForConfigChanges")
         currentActivity = activityPluginBinding.activity
         activityPluginBinding.addRequestPermissionsResultListener(this)
     }
 
     override fun onDetachedFromActivity() {
-        Log.i(TAG, "onDetachedFromActivity")
         currentActivity = null
         SpeechListenService.stopSpeechListener()
     }

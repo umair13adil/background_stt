@@ -76,6 +76,27 @@ class BackgroundStt {
     return result;
   }
 
+  Future<String> speak(String speechText) async {
+    final String result =
+        await _channel.invokeMethod('speak', <String, dynamic>{
+      'speechText': speechText,
+    });
+    print('[$_tag] speak: $result');
+    return result;
+  }
+
+  Future<String> pauseListening() async {
+    final String result = await _channel.invokeMethod('pauseListening');
+    print('[$_tag] pauseListening: $result');
+    return result;
+  }
+
+  Future<String> resumeListening() async {
+    final String result = await _channel.invokeMethod('resumeListening');
+    print('[$_tag] resumeListening: $result');
+    return result;
+  }
+
   Future<String> get stopSpeechListenService async {
     _stopSpeechListener();
     final String result = await _channel.invokeMethod('stopService');

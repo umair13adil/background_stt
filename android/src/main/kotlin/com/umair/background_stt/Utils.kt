@@ -4,12 +4,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.util.Log
 import com.afollestad.materialdialogs.DialogAction
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.Theme
 import io.flutter.plugin.common.MethodCall
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+
+private var isLoud = false
+private var audioValue = -1000
 
 fun Activity.enableAutoStart() {
     for (intent in Constants.AUTO_START_INTENTS) {
@@ -74,7 +78,33 @@ fun getInputStreamValueById(key: String, call: MethodCall): InputStream? {
     return null
 }
 
-fun Context.adjustSound(adjust: Int) {
+fun Context.adjustSound(adjust: Int, forceAdjust: Boolean = false) {
+    if (SpeechListenService.isListening) {
+        if (adjust == AudioManager.ADJUST_MUTE && SpeechListenService.isSpeaking()) {
+            return
+        } else {
+            if (audioValue != adjust) {
+                adjustSoundValues(adjust)
+                audioValue = adjust
+            } else {
+                if (forceAdjust) {
+                    adjustSoundValues(adjust)
+                }
+            }
+        }
+    } else {
+        if (adjust == AudioManager.ADJUST_MUTE) {
+            if (!isLoud) {
+                adjustSoundValues(AudioManager.ADJUST_RAISE)
+                isLoud = true
+            }
+        } else {
+            isLoud = false
+        }
+    }
+}
+
+private fun Context.adjustSoundValues(adjust: Int) {
     (getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager).let { audioManager ->
         audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION, adjust, 0)
         audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_ALARM, adjust, 0)

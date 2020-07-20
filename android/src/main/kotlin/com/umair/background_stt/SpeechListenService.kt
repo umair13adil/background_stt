@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.AudioManager.ADJUST_MUTE
 import android.os.IBinder
 import android.util.Log
@@ -21,6 +22,16 @@ class SpeechListenService : Service(), stopDueToDelay {
 
         @JvmStatic
         private var feedBackProvider: TextToSpeechFeedbackProvider? = null
+
+        @JvmStatic
+        internal var isListening = true
+
+        @JvmStatic
+        internal var isSpeaking = false
+
+        fun speak(text: String) {
+            feedBackProvider?.speak(text)
+        }
 
         fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String, voiceInputMessage: String, voiceInput: Boolean) {
             feedBackProvider?.setConfirmationData(text, positiveText, negativeText, voiceInputMessage, voiceInput)
@@ -39,6 +50,25 @@ class SpeechListenService : Service(), stopDueToDelay {
         fun stopSpeechListener() {
             feedBackProvider?.disposeTextToSpeech()
             Speech.getInstance().shutdown()
+        }
+
+        fun isListening(isListening: Boolean) {
+            this.isListening = isListening
+
+            if (isListening) {
+                feedBackProvider?.resumeSpeechService()
+            } else {
+                Speech.getInstance().stopListening()
+                context?.adjustSound(AudioManager.ADJUST_RAISE)
+            }
+        }
+
+        fun isListening(): Boolean {
+            return isListening
+        }
+
+        fun isSpeaking(): Boolean {
+            return isSpeaking;
         }
 
         fun startListening() {
@@ -129,7 +159,6 @@ class SpeechListenService : Service(), stopDueToDelay {
 
         if (Speech.isActive()) {
             if (Speech.getInstance().isListening) {
-                Log.i(TAG, "$TAG onSpecifiedCommandPronounced: Still Listening..")
                 //muteSounds()
                 //Speech.getInstance().stopListening()
             } else {
@@ -153,7 +182,8 @@ class SpeechListenService : Service(), stopDueToDelay {
      * Function to remove the beep sound of voice recognizer.
      */
     private fun muteSounds() {
-        adjustSound(ADJUST_MUTE)
+        if (isListening)
+            adjustSound(ADJUST_MUTE)
     }
 
     override fun onTaskRemoved(rootIntent: Intent) {

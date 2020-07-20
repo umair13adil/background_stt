@@ -11,6 +11,8 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 
+import com.umair.background_stt.SpeechListenService;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -74,6 +76,10 @@ public class Speech {
 
         @Override
         public void onBeginningOfSpeech() {
+            if(!SpeechListenService.Companion.isListening()){
+                return;
+            }
+
             mDelayedStopListening.start(new DelayedOperation.Operation() {
                 @Override
                 public void onDelayedOperation() {
@@ -89,6 +95,9 @@ public class Speech {
 
         @Override
         public void onRmsChanged(final float v) {
+            if(!SpeechListenService.Companion.isListening()){
+                return;
+            }
             try {
                 if (mDelegate != null)
                     mDelegate.onSpeechRmsChanged(v);
@@ -100,6 +109,10 @@ public class Speech {
 
         @Override
         public void onPartialResults(final Bundle bundle) {
+            if(!SpeechListenService.Companion.isListening()){
+                return;
+            }
+
             mDelayedStopListening.resetTimer();
 
             final List<String> partialResults = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -125,6 +138,10 @@ public class Speech {
 
         @Override
         public void onResults(final Bundle bundle) {
+            if(!SpeechListenService.Companion.isListening()){
+                return;
+            }
+
             mDelayedStopListening.cancel();
 
             final List<String> results = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -154,6 +171,9 @@ public class Speech {
 
         @Override
         public void onError(final int code) {
+            if(!SpeechListenService.Companion.isListening()){
+                return;
+            }
             //Logger.error(LOG_TAG, "Speech recognition error", new SpeechRecognitionException(code));
             returnPartialResultsAndRecreateSpeechRecognizer();
         }
@@ -310,6 +330,10 @@ public class Speech {
                 .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, mGetPartialResults)
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE, mLocale.getLanguage())
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000);
 
         if (mCallingPackage != null && !mCallingPackage.isEmpty()) {
             intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, mCallingPackage);

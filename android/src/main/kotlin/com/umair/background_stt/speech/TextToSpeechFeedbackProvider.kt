@@ -32,7 +32,6 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
     private var maxTries = 20
     private var tries = 0
     private var voiceReplyCount = 0
-    private var isSpeaking = false
     private var isListening = false
 
     private var soundPool = SoundPool(5, AudioManager.STREAM_NOTIFICATION, 0)
@@ -59,18 +58,18 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
 
         textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onDone(utteranceId: String?) {
-                isSpeaking = false
+                SpeechListenService.isSpeaking = false
                 doOnSpeechComplete()
             }
 
             override fun onError(utteranceId: String?) {
-                isSpeaking = false
+                SpeechListenService.isSpeaking = false
                 doOnSpeechComplete()
             }
 
             override fun onStart(utteranceId: String?) {
-                isSpeaking = true
-                context.adjustSound(AudioManager.ADJUST_RAISE)
+                SpeechListenService.isSpeaking = true
+                context.adjustSound(AudioManager.ADJUST_RAISE, forceAdjust = true)
             }
 
         });
@@ -85,7 +84,7 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
 
     fun speak(text: String) {
 
-        if (!isSpeaking && !textToSpeech?.isSpeaking!!) {
+        if (!SpeechListenService.isSpeaking && !textToSpeech?.isSpeaking!!) {
             Speech.getInstance().stopListening()
             isListening = false
             val speechStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -102,12 +101,16 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
                 if (!voiceReplyProvided) {
                     waitingForVoiceInput = false
                 }
-                Log.i(TAG, "Listening to voice commands..")
-                isListening = true
-                context.adjustSound(AudioManager.ADJUST_MUTE)
-                SpeechListenService.startListening()
+                resumeSpeechService()
             }
-        }, 2800)
+        }, 300)
+    }
+
+    fun resumeSpeechService(){
+        Log.i(TAG, "Listening to voice commands..")
+        isListening = true
+        context.adjustSound(AudioManager.ADJUST_MUTE, forceAdjust = true)
+        SpeechListenService.startListening()
     }
 
     fun isConfirmationInProgress(): Boolean {
@@ -242,7 +245,7 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
         voiceConfirmationRequested = false
         voiceReplyCount = 0
         soundPool.release()
-        isSpeaking = false
+        SpeechListenService.isSpeaking = false
         isListening = false
     }
 

@@ -16,10 +16,15 @@ class _MyAppState extends State<MyApp> {
   var confirmation = "";
   var confirmationReply = "";
   var voiceReply = "";
+  var isListening = false;
 
   @override
   void initState() {
     _service.startSpeechListenService;
+
+    setState(() {
+      if (mounted) isListening = true;
+    });
     _service.getSpeechResults().onData((data) {
       print("getSpeechResults: ${data.result} , ${data.isPartial} [STT Mode]");
 
@@ -120,7 +125,54 @@ class _MyAppState extends State<MyApp> {
                         });
                       },
                     )
-                  : Container()
+                  : Container(),
+              Visibility(
+                child: RaisedButton(
+                  child: Text("Pause Listening"),
+                  onPressed: () async {
+                    await _service.pauseListening();
+
+                    setState(() {
+                      result = "Speech listener Paused!";
+                      confirmation = "";
+                      confirmationReply = "";
+                      voiceReply = "";
+                      isListening = false;
+                    });
+                  },
+                ),
+                replacement: RaisedButton(
+                  child: Text("Resume Listening"),
+                  onPressed: () async {
+                    await _service.resumeListening();
+
+                    setState(() {
+                      result = "Speech listener Resumed!";
+                      confirmation = "";
+                      confirmationReply = "";
+                      voiceReply = "";
+                      isListening = true;
+                    });
+                  },
+                ),
+                visible: isListening,
+              ),
+              RaisedButton(
+                child: Text("Speak"),
+                onPressed: () async {
+                  var t = DateTime.now();
+                  await _service.speak(
+                      "Hello, time is ${t.hour}:${t.minute}:${t.second}");
+
+                  setState(() {
+                    result = "Speech listener Paused!";
+                    confirmation = "";
+                    confirmationReply = "";
+                    voiceReply = "";
+                    isListening = false;
+                  });
+                },
+              )
             ],
           ),
         ),
