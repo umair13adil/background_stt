@@ -107,6 +107,27 @@ __________________________________
   _service.stopSpeechListenService;
 ```
 
+#### Pause Speech-to-Text Listener
+__________________________________
+
+```dart
+  await _service.pauseListening();
+```
+
+#### Resume Speech-to-Text Listener
+__________________________________
+
+```dart
+  await _service.resumeListening();
+```
+
+#### Speak Text and Interupt Listener
+__________________________________
+
+```dart
+  await _service.speak("Hello");
+```
+
 # Author
 
 background_stt plugin is developed by Umair Adil. You can email me at <m.umair.adil@gmail.com> for any queries.
