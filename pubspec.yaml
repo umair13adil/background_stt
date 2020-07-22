@@ -1,6 +1,6 @@
 name: background_stt
 description: A flutter plugin for Speech-to-Text & Text-To-Speech service always active in background mode.
-version: 1.0.2
+version: 1.0.3
 homepage: https://github.com/umair13adil/background_stt
 
 environment:

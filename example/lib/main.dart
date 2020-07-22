@@ -162,7 +162,8 @@ class _MyAppState extends State<MyApp> {
                 onPressed: () async {
                   var t = DateTime.now();
                   await _service.speak(
-                      "Hello, time is ${t.hour}:${t.minute}:${t.second}");
+                      "Hello, time is ${t.hour}:${t.minute}:${t.second}",
+                      false);
 
                   setState(() {
                     result = "Speech listener Paused!";

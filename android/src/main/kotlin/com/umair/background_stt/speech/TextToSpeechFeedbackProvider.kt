@@ -82,15 +82,32 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
         textToSpeech?.shutdown()
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, forceMode: Boolean = false, queue: Boolean = true) {
 
-        if (!SpeechListenService.isSpeaking && !textToSpeech?.isSpeaking!!) {
+        if (forceMode) {
             Speech.getInstance().stopListening()
-            isListening = false
-            val speechStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            callTextToSpeech(text, queue)
+        } else {
+            if (!SpeechListenService.isSpeaking && !textToSpeech?.isSpeaking!!) {
+                Speech.getInstance().stopListening()
+                isListening = false
+                callTextToSpeech(text, queue)
+            }
+        }
+    }
+
+    private fun callTextToSpeech(text: String, queue: Boolean) {
+        if (queue) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 textToSpeech?.speak(text, TextToSpeech.QUEUE_ADD, null, text)
             } else {
                 textToSpeech?.speak(text, TextToSpeech.QUEUE_ADD, null)
+            }
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, text)
+            } else {
+                textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
             }
         }
     }
@@ -106,7 +123,7 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
         }, 300)
     }
 
-    fun resumeSpeechService(){
+    fun resumeSpeechService() {
         Log.i(TAG, "Listening to voice commands..")
         isListening = true
         context.adjustSound(AudioManager.ADJUST_MUTE, forceAdjust = true)

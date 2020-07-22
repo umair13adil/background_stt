@@ -124,7 +124,8 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
                     }
                     "speak" -> {
                         val speechText = getStringValueById("speechText", call)
-                        SpeechListenService.speak(speechText)
+                        val queue = getBoolValueById("queue", call)
+                        SpeechListenService.speak(speechText, queue)
                     }
                     else -> result.notImplemented()
                 }

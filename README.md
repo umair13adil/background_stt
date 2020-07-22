@@ -124,8 +124,16 @@ __________________________________
 #### Speak Text and Interupt Listener
 __________________________________
 
+If you want to queue voice messages, send queue value 'true':
+
 ```dart
-  await _service.speak("Hello");
+  await _service.speak("Hello",true)
+```
+
+To interupt and speak current playing message, send queue value 'false':
+
+```dart
+  await _service.speak("Hello",false)
 ```
 
 # Author

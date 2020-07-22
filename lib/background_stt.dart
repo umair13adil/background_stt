@@ -76,10 +76,11 @@ class BackgroundStt {
     return result;
   }
 
-  Future<String> speak(String speechText) async {
+  Future<String> speak(String speechText, bool queue) async {
     final String result =
         await _channel.invokeMethod('speak', <String, dynamic>{
       'speechText': speechText,
+      'queue': queue,
     });
     print('[$_tag] speak: $result');
     return result;
