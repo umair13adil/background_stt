@@ -1,3 +1,9 @@
-## 0.0.1
+## 1.0.3
 
-* TODO: Describe initial release.
+* Added Speech queue or flush option
+
+## 1.0.2
+
+* Added Speech pause, resume methods
+* Added Speak method
+* Improved efficiency
