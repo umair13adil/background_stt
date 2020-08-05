@@ -1,3 +1,7 @@
+## 1.0.4
+
+* Disabled Auto-Start
+
 ## 1.0.3
 
 * Added Speech queue or flush option

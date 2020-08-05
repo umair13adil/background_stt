@@ -1,41 +1,48 @@
 package com.umair.background_stt
 
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.os.Build
 import android.util.Log
-import com.afollestad.materialdialogs.DialogAction
-import com.afollestad.materialdialogs.MaterialDialog
-import com.afollestad.materialdialogs.Theme
 import io.flutter.plugin.common.MethodCall
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+
 
 private var isLoud = false
 private var audioValue = -1000
 
 fun Activity.enableAutoStart() {
-    for (intent in Constants.AUTO_START_INTENTS) {
-        if (packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) != null) {
-            MaterialDialog.Builder(this).title(R.string.enable_auto_start)
-                    .content(R.string.ask_permission)
-                    .theme(Theme.LIGHT)
-                    .positiveText(getString(R.string.allow))
-                    .onPositive { dialog: MaterialDialog?, which: DialogAction? ->
-                        try {
-                            for (intent1 in Constants.AUTO_START_INTENTS) if (packageManager.resolveActivity(intent1, PackageManager.MATCH_DEFAULT_ONLY)
-                                    != null) {
-                                startActivity(intent1)
-                                break
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                    .show()
-            break
+    try {
+        val intent = Intent()
+        val manufacturer = Build.MANUFACTURER
+        when {
+            "xiaomi".equals(manufacturer, ignoreCase = true) -> {
+                intent.component = ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+            }
+            "oppo".equals(manufacturer, ignoreCase = true) -> {
+                intent.component = ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+            }
+            "vivo".equals(manufacturer, ignoreCase = true) -> {
+                intent.component = ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+            }
+            "Letv".equals(manufacturer, ignoreCase = true) -> {
+                intent.component = ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")
+            }
+            "Honor".equals(manufacturer, ignoreCase = true) -> {
+                intent.component = ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")
+            }
         }
+        val list = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        if (list.size > 0) {
+            this.startActivity(intent)
+        }
+    } catch (e: java.lang.Exception) {
+        Log.e("exc", e.toString())
     }
 }
 

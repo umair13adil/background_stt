@@ -160,7 +160,7 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
             channel?.let {
                 it.invokeMethod("recordPermissionsGranted", "")
             }
-            currentActivity?.enableAutoStart()
+            //currentActivity?.enableAutoStart()
 
         }
 
