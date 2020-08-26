@@ -96,6 +96,11 @@ class TextToSpeechFeedbackProvider constructor(val context: Context) {
         }
     }
 
+    fun setSpeaker(pitch: Float, rate: Float) {
+        textToSpeech?.setPitch(pitch)
+        textToSpeech?.setSpeechRate(rate)
+    }
+
     private fun callTextToSpeech(text: String, queue: Boolean) {
         if (queue) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

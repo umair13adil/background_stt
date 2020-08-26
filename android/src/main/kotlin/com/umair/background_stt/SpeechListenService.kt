@@ -29,8 +29,12 @@ class SpeechListenService : Service(), stopDueToDelay {
         @JvmStatic
         internal var isSpeaking = false
 
-        fun speak(text: String, queue:Boolean) {
+        fun speak(text: String, queue: Boolean) {
             feedBackProvider?.speak(text, forceMode = true, queue = queue)
+        }
+
+        fun setSpeaker(pitch: Float, rate: Float) {
+            feedBackProvider?.setSpeaker(pitch, rate)
         }
 
         fun doOnIntentConfirmation(text: String, positiveText: String, negativeText: String, voiceInputMessage: String, voiceInput: Boolean) {

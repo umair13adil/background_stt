@@ -18,6 +18,9 @@ class _MyAppState extends State<MyApp> {
   var voiceReply = "";
   var isListening = false;
 
+  double _currentPitchValue = 100;
+  double _currentRateValue = 100;
+
   @override
   void initState() {
     _service.startSpeechListenService;
@@ -81,6 +84,11 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       confirmation = "$command [Confirmation Mode]";
     });
+  }
+
+  void updateSpeaker() {
+    print("setSpeaker: pitch($_currentPitchValue) rate($_currentRateValue)");
+    _service.setSpeaker(_currentPitchValue / 100, _currentRateValue / 100);
   }
 
   @override
@@ -172,6 +180,32 @@ class _MyAppState extends State<MyApp> {
                     voiceReply = "";
                     isListening = false;
                   });
+                },
+              ),
+              Slider(
+                value: _currentPitchValue,
+                min: 0,
+                max: 100,
+                divisions: 10,
+                label: "Pitch: ${_currentPitchValue.round().toString()}",
+                onChanged: (double value) {
+                  setState(() {
+                    _currentPitchValue = value;
+                  });
+                  updateSpeaker();
+                },
+              ),
+              Slider(
+                value: _currentRateValue,
+                min: 0,
+                max: 100,
+                divisions: 10,
+                label: "Rate: ${_currentRateValue.round().toString()}",
+                onChanged: (double value) {
+                  setState(() {
+                    _currentRateValue = value;
+                  });
+                  updateSpeaker();
                 },
               )
             ],
