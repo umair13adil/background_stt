@@ -86,6 +86,16 @@ class BackgroundStt {
     return result;
   }
 
+  Future<String> setSpeaker(double pitch, double rate) async {
+    final String result =
+        await _channel.invokeMethod('setSpeaker', <String, String>{
+      'pitch': pitch.toString(),
+      'rate': rate.toString(),
+    });
+    print('[$_tag] setSpeaker: $result');
+    return result;
+  }
+
   Future<String> pauseListening() async {
     final String result = await _channel.invokeMethod('pauseListening');
     print('[$_tag] pauseListening: $result');

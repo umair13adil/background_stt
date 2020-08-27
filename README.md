@@ -136,6 +136,12 @@ To interupt and speak current playing message, send queue value 'false':
   await _service.speak("Hello",false)
 ```
 
+Set speaker pitch and speech rate:
+
+```dart
+  _service.setSpeaker(0.2, 0.5)
+```
+
 # Author
 
 background_stt plugin is developed by Umair Adil. You can email me at <m.umair.adil@gmail.com> for any queries.
