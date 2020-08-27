@@ -1,3 +1,7 @@
+## 1.0.5
+
+* Added speaker pitch and rate methods
+
 ## 1.0.4
 
 * Disabled Auto-Start
