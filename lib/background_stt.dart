@@ -28,7 +28,7 @@ class BackgroundStt {
   StreamSubscription<SpeechResult> speechSubscription =
       _speechListenerController.stream.asBroadcastStream().listen(
           (data) {
-            print("DataReceived: " + data.result);
+            print("DataReceived: " + data.result!);
           },
           onDone: () {},
           onError: (error) {
@@ -38,33 +38,33 @@ class BackgroundStt {
   StreamSubscription<ConfirmationResult> confirmationSubscription =
       _confirmationListenerController.stream.asBroadcastStream().listen(
           (data) {
-            print("DataReceived: " + data.confirmedResult);
+            print("DataReceived: " + data.confirmedResult!);
           },
           onDone: () {},
           onError: (error) {
             print("Some Error");
           });
 
-  Future<String> get startSpeechListenService async {
-    final String result = await _channel.invokeMethod('startService');
+  Future<String?> get startSpeechListenService async {
+    final String? result = await _channel.invokeMethod('startService');
     print('[$_tag] Received: $result');
     _init();
     return result;
   }
 
-  Future<String> get cancelConfirmation async {
-    final String result = await _channel.invokeMethod('cancelConfirmation');
+  Future<String?> get cancelConfirmation async {
+    final String? result = await _channel.invokeMethod('cancelConfirmation');
     print('[$_tag] $result');
     return result;
   }
 
-  Future<String> confirmIntent(
-      {String confirmationText,
-      String positiveCommand,
-      String negativeCommand,
-      String voiceInputMessage,
-      bool voiceInput}) async {
-    final String result =
+  Future<String?> confirmIntent(
+      {String? confirmationText,
+      String? positiveCommand,
+      String? negativeCommand,
+      String? voiceInputMessage,
+      bool? voiceInput}) async {
+    final String? result =
         await _channel.invokeMethod('confirmIntent', <String, dynamic>{
       'confirmationText': confirmationText,
       'positiveCommand': positiveCommand,
@@ -76,8 +76,8 @@ class BackgroundStt {
     return result;
   }
 
-  Future<String> speak(String speechText, bool queue) async {
-    final String result =
+  Future<String?> speak(String speechText, bool queue) async {
+    final String? result =
         await _channel.invokeMethod('speak', <String, dynamic>{
       'speechText': speechText,
       'queue': queue,
@@ -86,8 +86,8 @@ class BackgroundStt {
     return result;
   }
 
-  Future<String> setSpeaker(double pitch, double rate) async {
-    final String result =
+  Future<String?> setSpeaker(double pitch, double rate) async {
+    final String? result =
         await _channel.invokeMethod('setSpeaker', <String, String>{
       'pitch': pitch.toString(),
       'rate': rate.toString(),
@@ -96,21 +96,21 @@ class BackgroundStt {
     return result;
   }
 
-  Future<String> pauseListening() async {
-    final String result = await _channel.invokeMethod('pauseListening');
+  Future<String?> pauseListening() async {
+    final String? result = await _channel.invokeMethod('pauseListening');
     print('[$_tag] pauseListening: $result');
     return result;
   }
 
-  Future<String> resumeListening() async {
-    final String result = await _channel.invokeMethod('resumeListening');
+  Future<String?> resumeListening() async {
+    final String? result = await _channel.invokeMethod('resumeListening');
     print('[$_tag] resumeListening: $result');
     return result;
   }
 
-  Future<String> get stopSpeechListenService async {
+  Future<String?> get stopSpeechListenService async {
     _stopSpeechListener();
-    final String result = await _channel.invokeMethod('stopService');
+    final String? result = await _channel.invokeMethod('stopService');
     print('[$_tag] Received: $result');
     return result;
   }
@@ -120,14 +120,14 @@ class BackgroundStt {
       if (event.toString().contains("isPartial") &&
           !event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);
-        _speechResultSaved = SpeechResult.fromJson(result);
+        _speechResultSaved = SpeechResult.fromJson(result as Map<String, dynamic>);
         _speechListenerController.add(_speechResultSaved);
       } else if (!event.toString().contains("isPartial") &&
           event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);
-        _confirmationResultSaved = ConfirmationResult.fromJson(result);
+        _confirmationResultSaved = ConfirmationResult.fromJson(result as Map<String, dynamic>);
         if (_confirmationResultSaved.confirmationIntent != null &&
-            _confirmationResultSaved.confirmationIntent.isNotEmpty) {
+            _confirmationResultSaved.confirmationIntent!.isNotEmpty) {
           _confirmationListenerController.add(_confirmationResultSaved);
         }
       }

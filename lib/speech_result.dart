@@ -1,6 +1,6 @@
 class SpeechResult {
-  String result;
-  bool isPartial;
+  String? result;
+  bool? isPartial;
 
   SpeechResult({this.result, this.isPartial});
 

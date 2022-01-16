@@ -12,10 +12,10 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var _service = BackgroundStt();
-  var result = "Say something!";
-  var confirmation = "";
-  var confirmationReply = "";
-  var voiceReply = "";
+  String result = "Say something!";
+  String confirmation = "";
+  String confirmationReply = "";
+  String voiceReply = "";
   var isListening = false;
 
   double _currentPitchValue = 100;
@@ -37,7 +37,7 @@ class _MyAppState extends State<MyApp> {
         confirmation = "";
         confirmationReply = "";
         voiceReply = "";
-        result = data.result;
+        result = data.result!;
       });
     });
 
@@ -49,14 +49,14 @@ class _MyAppState extends State<MyApp> {
           "Is Confirmation Success?: ${data.isSuccess}");
 
       setState(() {
-        confirmation = data.confirmationIntent;
-        confirmationReply = data.confirmedResult;
+        confirmation = data.confirmationIntent!;
+        confirmationReply = data.confirmedResult!;
       });
     });
     super.initState();
   }
 
-  void _doOnSpeechCommandMatch(String command) {
+  void _doOnSpeechCommandMatch(String? command) {
     if (command == "start") {
       _service.confirmIntent(
           confirmationText: "Do you want to start?",

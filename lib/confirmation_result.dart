@@ -1,8 +1,8 @@
 class ConfirmationResult {
-  String confirmationIntent;
-  String confirmedResult;
-  String voiceInput;
-  bool isSuccess;
+  String? confirmationIntent;
+  String? confirmedResult;
+  String? voiceInput;
+  bool? isSuccess;
 
   ConfirmationResult(
       {this.confirmationIntent,
