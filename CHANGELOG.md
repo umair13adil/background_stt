@@ -1,3 +1,6 @@
+## 1.0.6
+* Plugin migrated to null-safety
+
 ## 1.0.5
 
 * Added speaker pitch and rate methods
